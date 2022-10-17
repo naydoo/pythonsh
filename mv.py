@@ -4,7 +4,7 @@ import regex
 
 
 eks_url = "http://localhost:8200/v1/sys/health"
-sddc_url = "http://localhost:8200/v1/sys/health"
+sddc_url = "http://localhost:8400/v1/sys/health"
 message = "check"
 
 eks_res = requests.get(eks_url)
