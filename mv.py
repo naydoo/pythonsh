@@ -5,15 +5,13 @@ import regex
 
 eks_url = "http://localhost:8200/v1/sys/health"
 sddc_url = "http://localhost:8200/v1/sys/health"
-message = "check"
 
-eks_res = requests.get(eks_url)
-sddc_res = requests.get(sddc_url)
+eks_version_request = requests.get(eks_url)
+sddc_version_response = requests.get(sddc_url)
 
-eks_body = eks_res.json()
-sddc_body = sddc_res.json()
-m = regex.search('version(.+?)', message)
-print(json.dumps(eks_body['version']))
-print(json.dumps(sddc_body['version']))
+eks_rsponse = eks_version_request.json()
+sddc_response = sddc_version_request.json()
+print(json.dumps(eks_response['version']))
+print(json.dumps(sddc_response['version']))
 
-assert json.dumps(eks_body['version']) == json.dumps(sddc_body['version']), "Vault versions are are not the same"
+assert json.dumps(eks_response['version']) == json.dumps(sddc_response['version']), "Vault versions are are not the same"
