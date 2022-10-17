@@ -7,7 +7,7 @@ eks_url = "http://localhost:8200/v1/sys/health"
 sddc_url = "http://localhost:8200/v1/sys/health"
 
 eks_version_request = requests.get(eks_url)
-sddc_version_response = requests.get(sddc_url)
+sddc_version_request = requests.get(sddc_url)
 
 eks_rsponse = eks_version_request.json()
 sddc_response = sddc_version_request.json()
