@@ -16,4 +16,4 @@ m = regex.search('version(.+?)', message)
 print(json.dumps(eks_body['version']))
 print(json.dumps(sddc_body['version']))
 
-assert json.dumps(eks_body['version']) == json.dumps(sddc_body['version'])
+assert json.dumps(eks_body['version']) == json.dumps(sddc_body['version']), "Vault versions are are not the same"
