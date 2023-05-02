@@ -1,0 +1,147 @@
+- name: Deploy to centerb nodes
+  hosts: centerb
+  roles:
+    - login
+    - configuration
+    - scheduler
+    - cleanup
+  run_once: true
+
+- name: Health check and group assignment for centera nodes
+  hosts: centera
+  roles:
+    - health_check
+
+- name: Deploy to centera nodes based on response codes
+  hosts: "centera_code_{{ item }}"
+  serial: "{{ parallel | default(1) }}"
+  any_errors_fatal: true
+  environment:
+    VAULT_TOKEN: "{{ vault_token }}"
+  roles:
+    - login
+    - configuration
+    - scheduler
+  run_once: true
+  loop:
+    - 472
+    - 473
+    - 200
+  when: "groups['centera_code_' ~ item]|length > 0"
+
+- name: Cleanup on centera nodes
+  hosts: centera
+  roles:
+    - cleanup
+  run_once: true
+-----
+
+- name: Perform health check
+  uri:
+    url: "https://{{ inventory_hostname }}:8200/v1/sys/health"
+    method: GET
+    status_code: '200,472,473'
+  register: health_check_result
+
+- name: Add node to group based on response code
+  add_host:
+    name: "{{ inventory_hostname }}"
+    groups: "centera_code_{{ health_check_result.status }}"
+-----
+- name: Health check and group assignment
+  hosts: centera
+  roles:
+    - health_check
+
+- name: Deploy to centera standby nodes
+  hosts: centera_standby
+  serial: "{{ parallel | default(1) }}"
+  any_errors_fatal: true
+  environment:
+    VAULT_TOKEN: "{{ vault_token }}"
+  roles:
+    - login
+    - configuration
+    - scheduler
+  run_once: true
+
+- name: Deploy to centera active nodes
+  hosts: centera_active
+  serial: "{{ parallel | default(1) }}"
+  any_errors_fatal: true
+  environment:
+    VAULT_TOKEN: "{{ vault_token }}"
+  roles:
+    - login
+    - configuration
+    - scheduler
+  run_once: true
+
+- name: Deploy to centera nodes
+  hosts: centera
+  roles:
+    - cleanup
+  run_once: true
+
+- name: Deploy to centerb nodes
+  hosts: centerb
+  roles:
+    - login
+    - configuration
+    - scheduler
+    - cleanup
+  run_once: true
+-----
+- name: Perform health check
+  uri:
+    url: "http://{{ inventory_hostname }}/health"
+    method: GET
+    status_code: '200,473'
+  register: health_check_result
+
+- name: Set node status
+  set_fact:
+    node_status: "{% if health_check_result.status == 200 %}active{% else %}standby{% endif %}"
+
+- name: Add node to active group
+  add_host:
+    name: "{{ inventory_hostname }}"
+    groups: centera_active
+  when: node_status == "active"
+
+- name: Add node to standby group
+  add_host:
+    name: "{{ inventory_hostname }}"
+    groups: centera_standby
+  when: node_status == "standby"
+-----
+- name: Deploy to datacenter nodes
+  hosts: "{{ item }}"
+  roles:
+    - login
+  run_once: true
+  loop:
+    - centera
+    - centerb
+
+- name: Deploy to datacenter nodes
+  hosts: "{{ item }}"
+  serial: "{{ parallel | default(1) }}"
+  any_errors_fatal: true
+  environment:
+    VAULT_TOKEN: "{{ vault_token }}"
+  roles:
+    - configuration
+    - scheduler
+  loop:
+    - centera
+    - centerb
+
+- name: Deploy to datacenter nodes
+  hosts: "{{ item }}"
+  roles:
+    - cleanup
+  run_once: true
+  loop:
+    - centera
+    - centerb
