@@ -1,0 +1,86 @@
+---
+- name: Restart Vault nodes in the order of status codes
+  hosts: vault_nodes
+  gather_facts: no
+  tasks:
+    - name: Check Vault node health
+      uri:
+        url: "http://{{ inventory_hostname }}:8200/v1/sys/health?standbyok=true&perfstandbyok=true"
+        method: GET
+        return_content: yes
+        status_code: 200,429,472,473
+      register: vault_health
+      ignore_errors: true
+
+- name: Restart Vault nodes with status code 473
+  hosts: vault_nodes
+  gather_facts: no
+  tasks:
+    - name: Restart Vault service on nodes with status code 473
+      ansible.builtin.systemd:
+        name: vault
+        state: restarted
+        daemon_reload: yes
+      become: yes
+      when: vault_health.status == 473
+
+- name: Restart Vault nodes with status code 472
+  hosts: vault_nodes
+  gather_facts: no
+  tasks:
+    - name: Restart Vault service on nodes with status code 472
+      ansible.builtin.systemd:
+        name: vault
+        state: restarted
+        daemon_reload: yes
+      become: yes
+      when: vault_health.status == 472
+
+- name: Restart Vault nodes with status code 429
+  hosts: vault_nodes
+  gather_facts: no
+  tasks:
+    - name: Restart Vault service on nodes with status code 429
+      ansible.builtin.systemd:
+        name: vault
+        state: restarted
+        daemon_reload: yes
+      become: yes
+      when: vault_health.status == 429
+
+- name: Restart Vault nodes with status code 200
+  hosts: vault_nodes
+  gather_facts: no
+  tasks:
+    - name: Restart Vault service on nodes with status code 200
+      ansible.builtin.systemd:
+        name: vault
+        state: restarted
+        daemon_reload: yes
+      become: yes
+      when: vault_health.status == 200
+      
+      
+----------
+---
+- name: Check Vault node health and restart standby nodes
+  hosts: vault_nodes
+  gather_facts: no
+  tasks:
+    - name: Check Vault node health
+      uri:
+        url: "http://{{ inventory_hostname }}:8200/v1/sys/health?standbyok=true"
+        method: GET
+        return_content: yes
+        status_code: 200,429
+      register: vault_health
+      ignore_errors: true
+
+    - name: Restart Vault service on standby nodes
+      ansible.builtin.systemd:
+        name: vault
+        state: restarted
+        daemon_reload: yes
+      become: yes
+      when: vault_health.status == 429
+
